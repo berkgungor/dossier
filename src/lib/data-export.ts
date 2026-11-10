@@ -62,6 +62,8 @@ export const INSTALL_SETTINGS: readonly string[] = [
   "setupGuide",
   // The job agent's runs count against this server's job source key (E16).
   "agentRuns",
+  // Workday accounts auto-apply made, encrypted with this server's secret.
+  "applyAccountsEnc",
   // When Startups was last opened and what its last refresh found (#222).
   "startupsViewedAt",
   "startupsLastRefresh",

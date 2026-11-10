@@ -1,4 +1,5 @@
 import { DEFAULT_SECTION_LAYOUT } from "@/lib/resume-sections";
+import { EMPTY_ANSWERS } from "@/lib/apply/answers";
 import { describe, expect, it } from "vitest";
 
 import { DateFormat } from "@/generated/prisma/enums";
@@ -75,7 +76,11 @@ describe("stored settings", () => {
       agentMaxScores: 15,
       agentMaxDrafts: 3,
       agentAutoDraft: false,
+      agentAutoApply: false,
       agentRuns: [],
+      applyAnswers: EMPTY_ANSWERS,
+      applyAutoSubmit: false,
+      applyAccountsEnc: null,
       startupsViewedAt: null,
       startupsLastRefresh: null,
       updateCheck: true,

@@ -60,6 +60,8 @@ export function appEnv(): Record<string, string> {
     DOSSIER_TYPESAFE_TEST_BASE_URL: `http://localhost:${FAKE_JOBS_PORT}/typesafe`,
     // A production server, so it would ask the project's backend for its notices (E18).
     DOSSIER_API_URL: `http://localhost:${FAKE_JOBS_PORT}/v1`,
+    // Auto-apply may open the fake application forms, though they're local (e2e/fake-ats.mts).
+    DOSSIER_APPLY_TEST_ORIGINS: `http://localhost:${FAKE_JOBS_PORT}`,
     PORT: String(APP_PORT),
   };
 }
@@ -210,4 +212,15 @@ export function portraitPng(width = 900, height = 800): Buffer {
     chunk("IDAT", deflateSync(rows)),
     chunk("IEND", Buffer.alloc(0)),
   ]);
+}
+
+/** What the fake application forms were sent so far (e2e/fake-ats.mts). */
+export async function fakeAtsSubmissions(): Promise<{ form: string; body: string }[]> {
+  const response = await fetch(`http://localhost:${FAKE_JOBS_PORT}/ats-submissions`);
+  return ((await response.json()) as { submissions: { form: string; body: string }[] }).submissions;
+}
+
+/** Forgets the fake forms' submissions and Workday accounts. */
+export async function resetFakeAts(): Promise<void> {
+  await fetch(`http://localhost:${FAKE_JOBS_PORT}/ats-reset`, { method: "POST" });
 }

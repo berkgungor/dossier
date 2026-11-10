@@ -16,6 +16,10 @@ export async function register() {
     const { recoverInterruptedJobs } = await import("@/lib/jobs/runner");
     await recoverInterruptedJobs().catch((error: unknown) => logServerError("startup", error));
 
+    // So are the employers' forms auto-apply had open.
+    const { recoverInterruptedAttempts } = await import("@/lib/apply/attempts");
+    await recoverInterruptedAttempts().catch((error: unknown) => logServerError("startup", error));
+
     // Applications sent before 1.12 keep what they show now (#299).
     const { freezeSentApplications } = await import("@/lib/frozen-copy");
     await freezeSentApplications().catch((error: unknown) => logServerError("startup", error));

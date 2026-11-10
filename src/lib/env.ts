@@ -190,6 +190,21 @@ const schema = z.object({
   DOSSIER_DESKTOP_TOKEN: optional(z.string()),
   // And where it prints PDFs (pdf/desktop-print.ts), with its own Chromium.
   DOSSIER_DESKTOP_PRINT_URL: optional(z.url({ protocol: /^https?$/, error: "DOSSIER_DESKTOP_PRINT_URL must be an http:// or https:// URL." })),
+  // Auto-apply's browser (src/lib/apply/browser.ts). Unset: headless
+  // Chromium in the app, which can't be taken over. "headed": a visible
+  // window, for a server running on the user's own computer. A ws:// or
+  // wss:// address: the Playwright browser server scripts/apply-browser.mjs
+  // starts on the user's computer, for a server in Docker.
+  DOSSIER_APPLY_BROWSER: optional(
+    z
+      .string()
+      .trim()
+      .refine((value) => value === "headed" || /^wss?:\/\/[^\s]+$/.test(value), "DOSSIER_APPLY_BROWSER must be \"headed\" or a ws:// or wss:// address."),
+  ),
+  // For the end-to-end tests only: origins auto-apply may open although
+  // they're on a local network, comma-separated (e2e/fake-jobs.mts serves
+  // the fake ATS forms).
+  DOSSIER_APPLY_TEST_ORIGINS: optional(z.string().trim()),
   // For the end-to-end tests only: asks <url> for the latest release instead
   // of GitHub's API (e2e/fake-jobs.mts answers).
   DOSSIER_UPDATES_TEST_BASE_URL: optional(

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { AiProvider, Creativity, DateFormat, JobStatus, PaperSize, Tone } from "@/generated/prisma/enums";
+import { answerBankSchema } from "@/lib/apply/answers";
+import { closeAllSessions } from "@/lib/apply/browser";
 import { action, ActionError } from "@/lib/action";
 import { lockAgentSearches } from "@/lib/agent/searches";
 import { AiError, createProvider } from "@/lib/ai";
@@ -46,6 +48,16 @@ async function currentKeyState(): Promise<KeyState> {
  * its provider: switching provider removes it, so it's never sent to
  * another company's server.
  */
+
+/** The answer bank as a form sends it: strict, so an answer that doesn't fit is refused rather than dropped. */
+const answerBankInput = answerBankSchema.extend({
+  authorized: z.enum(["", "yes", "no"]),
+  sponsorship: z.enum(["", "yes", "no"]),
+  relocate: z.enum(["", "yes", "no"]),
+  over18: z.enum(["", "yes", "no"]),
+  consent: z.enum(["", "yes", "no"]),
+});
+
 export const saveAiProvider = action(
   z.object({
     provider: z.enum(AiProvider),
@@ -244,12 +256,20 @@ export const updateSettings = action(
     nightlyBackup: z.boolean().optional(),
     jobRetentionHours: z.number().refine(isJobRetention).optional(),
     updateCheck: z.boolean().optional(),
+    applyAutoSubmit: z.boolean().optional(),
+    agentAutoApply: z.boolean().optional(),
   }),
   async (changes) => {
     await saveSettings(changes);
     return null;
   },
 );
+
+/** Settings → Auto-apply's answer bank, saved as it's typed. */
+export const saveApplyAnswers = action(answerBankInput, async (applyAnswers) => {
+  await saveSettings({ applyAnswers });
+  return null;
+});
 
 /**
  * "Other language…" (SET-7): adds a language to the list and writes
@@ -284,6 +304,8 @@ export const deleteEverything = action(z.object({ confirm: z.literal("DELETE") }
   for (const job of unfinished) await cancelJob(job.id);
   // Revokes Dossier's access at Google too (E15-1).
   await disconnectGoogle().catch(() => {});
+  // Auto-apply's open forms; their attempts go with the applications.
+  await closeAllSessions();
 
   await prisma.$transaction(async (tx) => {
     await lockAgentSearches(tx);

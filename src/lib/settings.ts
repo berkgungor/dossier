@@ -8,6 +8,7 @@ import { setupGuideSchema } from "@/lib/setup-guide";
 import { SCORERS } from "@/lib/scoring/scorers";
 import { startupsRefreshSchema } from "@/lib/startups/types";
 import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
+import { answerBankSchema, EMPTY_ANSWERS } from "@/lib/apply/answers";
 
 /** Date styles for documents (SET-6), labelled with an example as in the prototype. */
 export const DATE_FORMATS: readonly { value: DateFormat; label: string }[] = [
@@ -186,6 +187,8 @@ export const settingsSchema = z.object({
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
   /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
   agentAutoDraft: flag(false),
+  /** Fill in the employer's form (auto-apply) when a job agent draft is approved; it still stops for review. */
+  agentAutoApply: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */
   agentRuns: json(z.array(agentRunSchema)).catch([]),
   // Startups (#222): when the screen was last opened, since the daily refresh
@@ -193,6 +196,14 @@ export const settingsSchema = z.object({
   // to the install, not its data, so exports leave them out (INSTALL_SETTINGS).
   startupsViewedAt: z.iso.datetime().nullable().catch(null),
   startupsLastRefresh: json(startupsRefreshSchema).nullable().catch(null),
+  // Auto-apply (src/lib/apply): answers to the questions forms ask again and
+  // again, and whether a form filled in from them alone is submitted
+  // without review (off by default). Workday's candidate accounts, which
+  // Dossier makes for the user, are encrypted (APPLY_ACCOUNTS) and belong
+  // to the install (INSTALL_SETTINGS).
+  applyAnswers: json(answerBankSchema).catch(EMPTY_ANSWERS),
+  applyAutoSubmit: flag(false),
+  applyAccountsEnc: z.string().nullable().catch(null),
   /** "Check for updates daily" in Settings → About (update-check.ts). */
   updateCheck: flag(true),
   // The newest release the update check has seen, the UTC day it last

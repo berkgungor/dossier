@@ -52,6 +52,7 @@ const SCREENS = [
   "/settings?section=jobs",
   "/settings?section=scoring",
   "/settings?section=agent",
+  "/settings?section=apply",
   "/settings?section=documents",
   "/settings?section=google",
   "/settings?section=data",
@@ -59,6 +60,12 @@ const SCREENS = [
   "/applications/nope",
   "/nowhere",
 ];
+
+test("axe: an application's Auto-apply page", async ({ page }) => {
+  await page.goto(`${application}/apply`);
+  await page.waitForLoadState("networkidle");
+  await expectAccessible(page);
+});
 
 for (const path of SCREENS) {
   test(`axe: ${path}`, async ({ page }) => {

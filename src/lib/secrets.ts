@@ -21,6 +21,8 @@ export const TYPESAFE_KEY: SecretKind = { purpose: "typesafe-key-encryption", as
 /** The Google account's refresh token (E15-1). */
 export const GOOGLE_TOKEN: SecretKind = { purpose: "google-token-encryption", associatedData: "dossier google token v1" };
 /** The Google OAuth client's secret, entered in Settings → Google. */
+/** The candidate accounts auto-apply made on employers' Workday sites. */
+export const APPLY_ACCOUNTS: SecretKind = { purpose: "apply-accounts-encryption", associatedData: "dossier apply accounts v1" };
 export const GOOGLE_CLIENT_SECRET: SecretKind = { purpose: "google-client-secret-encryption", associatedData: "dossier google client secret v1" };
 
 const VERSION = "v1";

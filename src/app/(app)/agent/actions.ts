@@ -10,6 +10,7 @@ import { agentSetupProblem } from "@/lib/agent/run";
 import { runLimitProblem } from "@/lib/agent/runs";
 import { agentSearchInputSchema, agentSearchSetupProblem } from "@/lib/agent/search";
 import { deleteAgentSearch, listAgentSearches, moveAgentSearch, saveAgentSearch, setAgentSearchEnabled } from "@/lib/agent/searches";
+import { autoApplyApprovedDraft } from "@/lib/apply/attempts";
 import { action, ActionError } from "@/lib/action";
 import { safeLink } from "@/lib/job-search/search";
 import { findUnfinishedJobs, startJob } from "@/lib/jobs/runner";
@@ -131,6 +132,8 @@ export const prepareAgentDraft = action(z.object({ candidateId }), async ({ cand
 export const approveAgentDraft = action(z.object({ candidateId }), async ({ candidateId }, { toast }) => {
   const applicationId = await approveCandidate(candidateId);
   revalidateAgent();
+  // Settings → Auto-apply can fill in its form now; that still stops for review.
+  await autoApplyApprovedDraft(applicationId);
   toast("Added to Applications as a draft. Nothing has been sent.");
   return { applicationId };
 });

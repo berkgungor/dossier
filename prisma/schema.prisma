@@ -531,6 +531,8 @@ model Application {
   facts               Fact[]
   /// Its background jobs, deleted with it (their inputs and results hold the posting and the documents).
   jobs                Job[]
+  /// Auto-apply's attempts to fill in and submit the employer's form.
+  applyAttempts       ApplyAttempt[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -1003,6 +1005,55 @@ model LoginThrottle {
   updatedAt    DateTime  @updatedAt
 
   @@index([updatedAt])
+}
+
+// ─── Auto-apply ──────────────────────────────────────────────────────────────
+
+/// Where an auto-apply attempt stands (src/lib/apply).
+enum ApplyStatus {
+  /// Opening the form and filling it in.
+  FILLING
+  /// Filled in and stopped before submit, for the user's review.
+  REVIEW
+  /// Stopped for the user: a captcha, a sign-in, a field it can't fill.
+  NEEDS_YOU
+  SUBMITTING
+  SUBMITTED
+  FAILED
+  CANCELLED
+}
+
+/// One go at filling in and submitting an application's form on the
+/// employer's site. Deleted with its application.
+model ApplyAttempt {
+  id                String      @id @default(cuid())
+  applicationId     String
+  application       Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  status            ApplyStatus @default(FILLING)
+  /// The address it started from.
+  url               String
+  /// The applicant tracking system it found, e.g. "greenhouse" (AtsId).
+  ats               String      @default("generic")
+  /// What each field got (planEntrySchema in src/lib/apply/plan.ts).
+  plan              Json?
+  /// Why it stopped or failed, written for the user.
+  message           String?
+  /// The form as filled in, before submit (PNG).
+  screenshot        Bytes?
+  /// The page it was on when it stopped.
+  pageUrl           String      @default("")
+  /// The page after submit (PNG), and its address.
+  confirmation      Bytes?
+  confirmationUrl   String      @default("")
+  submittedAt       DateTime?
+  /// Submitted without review (Settings → Auto-apply).
+  autoSubmitted     Boolean     @default(false)
+  /// The confirmation mail found in Gmail, as "subject · sender".
+  confirmationEmail String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([applicationId, createdAt])
 }
 
 // ─── Background jobs (E6-7) ──────────────────────────────────────────────────

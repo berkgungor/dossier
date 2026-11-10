@@ -198,6 +198,19 @@ const answers: Record<string, (messages: Message[]) => unknown> = {
     };
   },
 
+  // Auto-apply: a free-text question about the candidate's work is answered
+  // from the profile; anything else (a driving licence) can't be.
+  form_answers: (messages) => {
+    const fields = section(messages[0].role === "system" ? messages[1].content : messages[0].content, "The fields:\n") as { id: string; label: string; type: string }[];
+    return {
+      answers: fields.map((field) =>
+        /why|tell us|project|proud|motivat/i.test(field.label)
+          ? { id: field.id, answer: "I like designing payment and logistics flows people can trust, and I want to keep doing that work with a product team.", note: "From your experience" }
+          : { id: field.id, answer: null, note: "Your profile doesn't say." },
+      ),
+    };
+  },
+
   new_text: (messages) => {
     const current = messages[1].content.split("Its current text:\n").at(-1) ?? "";
     const lines = current.split("\n").filter(Boolean);

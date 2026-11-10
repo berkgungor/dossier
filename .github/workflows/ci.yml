@@ -66,6 +66,8 @@ jobs:
       - run: yarn generate
       - run: yarn lint
       - run: yarn typecheck
+      # Headless Chromium, for auto-apply's tests against the fake ATS forms.
+      - run: yarn playwright install --with-deps --only-shell chromium
       # Fails when coverage drops below the thresholds in vitest.config.mts (E11-1).
       - run: yarn test:coverage
       # The database tests again, against SQLite (DATABASE_URL=file:…).

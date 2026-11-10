@@ -6,6 +6,8 @@
 import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
+import { serveAts } from "./fake-ats.mts";
+
 const port = Number(process.env.FAKE_JOBS_PORT ?? 3998);
 /** The JSearch key the app is given in e2e/support.ts. */
 const JSEARCH_KEY = "e2e-jsearch-key";
@@ -113,6 +115,8 @@ function answerAnnouncements(request: IncomingMessage, response: ServerResponse)
 createServer((request, response) => {
   const url = new URL(request.url ?? "/", `http://localhost:${port}`);
   if (url.pathname === "/health") return send(response, 200, { ok: true });
+  // Auto-apply's fake application forms (e2e/fake-ats.mts).
+  if (serveAts(request, response)) return;
   if (url.pathname === "/v1/announcements") return answerAnnouncements(request, response);
   if (url.pathname === "/announcement-requests") return send(response, 200, { requests: announcementRequests });
   if (url.pathname === "/announcement-answer" && request.method === "POST") {

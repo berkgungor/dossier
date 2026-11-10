@@ -27,6 +27,7 @@ import { availableUpdate } from "@/lib/update-check";
 import { USAGE_PING_HOST, usagePingChoice } from "@/lib/usage-ping";
 
 import { AgentSection } from "./agent-section";
+import { ApplySection } from "./apply-section";
 import { AiBehaviour } from "./ai-behaviour";
 import { AiProviderSection } from "./ai-provider-section";
 import { DataSection } from "./data-section";
@@ -77,6 +78,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
           timeZone={await lastKnownTimeZone()}
           onlyWhileOpen={isDesktopApp()}
         />
+      ) : section === "apply" ? (
+        <ApplySection initial={{ answers: settings.applyAnswers, autoSubmit: settings.applyAutoSubmit, agentAutoApply: settings.agentAutoApply }} />
       ) : section === "google" ? (
         <>
           <GoogleNotice outcome={typeof params.google === "string" ? params.google : null} />

@@ -242,6 +242,40 @@ Per-search history reports **source collection**, not successful AI evaluation: 
 
 The end-to-end specs `e2e/agent.spec.ts` and `e2e/agent-searches.spec.ts` run against the fake JSearch and fake AI, which scores by title (`posting_score` in `e2e/fake-ai.mts`). They cover multiple-search CRUD, cross-tab cap/stale errors, source partial failure, shared quota/score limits, attribution after rename/delete, v8 exports, mobile layout and accessibility. Database tests cover migration/bootstrap, backup round-trips, exclusion/overlap, reservation accounting and schedule deferral. No real source or paid AI requests are needed.
 
+## Auto-apply
+
+Auto-apply (`src/lib/apply`, the `/applications/[id]/apply` page and Settings → Auto-apply) fills in the employer's application form, stops before submitting, and submits after the user approves it:
+
+- **`ats.ts`**: the applicant tracking systems it knows, as data: Greenhouse, Lever, Ashby, Workable, SmartRecruiters, and Workday as best effort. Each one is found by its hostname, or by marker elements for a form embedded in a company's site. An adapter also knows its field names, how to get from a posting to its form (Lever's `/apply`, Ashby's `/application`, Greenhouse's iframe), its submit button and, for Workday, its "next page" button. Anything else is the generic adapter. LinkedIn's own pages are refused: Easy Apply isn't automated, against LinkedIn's terms. `resolveOffLinkedIn()` looks for the company's own link in the linked Find jobs posting, the agent candidate and the posting's text.
+- **`fields.ts`**: `readFieldsInPage()` runs in the page. It reads every visible control (label, type, required, choices, value) and marks each one with `data-dossier-field`. It's plain DOM code without helpers, because Playwright serializes it.
+- **`plan.ts`**: what goes in each field, and why. The adapter's known names come first, then label patterns, then the answers the user saved. What's left goes to the AI task `answer-form-fields` (`src/lib/ai/tasks`), which answers from the profile without contact details, or answers null. In strict mode, the fact guard checks its free-text answers, and an unverified name or number makes the field "needs you". A required field nothing supports is never guessed: Submit stays disabled until the user fills it in on the review screen. A drafted answer always needs review.
+- **`answers.ts`**: the answer bank, the `applyAnswers` setting. It holds US work authorization and sponsorship, at least 18, state and ZIP code, salary, start date, notice period, how they heard of the job, GitHub and portfolio, consent, the voluntary EEO answers ("decline" picks the form's own decline choice) and the saved custom answers.
+- **`runtime.ts`** and **`browser.ts`**: the page work. That is opening the form, spotting what only the user may do (a visible captcha, a sign-in without an account), filling in, uploading the PDFs `renderPdf()` makes, and submitting. One context per attempt stays open between filling and submitting, in this process, for at most 30 minutes idle. Every request goes through a guard that refuses private and local addresses, as the posting fetch does. `DOSSIER_APPLY_TEST_ORIGINS` lets the end-to-end tests through.
+- **`workday.ts`**: Workday's candidate accounts. With the answer bank's consent, Dossier makes one per site with the profile's email and a password of its own, kept encrypted in `applyAccountsEnc` (an install setting that exports leave out). It opens the verification link from Gmail when one comes. Without Gmail or without consent, the attempt stops for the user.
+- **`attempts.ts`**: the `ApplyAttempt` row and two background jobs, `auto-apply-fill` and `auto-apply-submit`, keyed `apply:<applicationId>`. Statuses are FILLING → REVIEW (or NEEDS_YOU for a captcha, a sign-in or a page that won't go on) → SUBMITTING → SUBMITTED, or FAILED or CANCELLED. After a submit, the application moves from Draft to Sent through `applyStatusChange()`, and the confirmation page's screenshot, its address and the time are stored. With **Submit without review** on, a form whose every answer came from the profile and the answer bank is submitted at once. A restart marks open attempts failed, as with jobs. With **Fill in forms for approved agent drafts** on, approving an agent draft starts one, and it still stops for review. `confirmation-email.ts` looks in Gmail for the confirmation mail for three days after a submit.
+
+Screenshots are PNG bytes in the attempt's row, served by `/api/apply/[id]/screenshot`, so they go when the application does.
+
+### Where the browser runs
+
+`DOSSIER_APPLY_BROWSER` chooses it:
+
+- **Unset (the default):** headless Chromium in the app, the same headless shell as the PDFs, from the same image. Nobody can take it over. A captcha or a sign-in stops the attempt, and the user finishes on the employer's site and presses **I submitted it myself**.
+- **`headed`:** a visible window from the app's own process, for a Dossier running on the user's computer outside Docker. That needs full Chromium (`npx playwright install chromium`), not the headless shell.
+- **A `ws://` address:** a Playwright browser server on the user's computer, for a Dossier in Docker or on a server. The user does a captcha or a sign-in in that window and presses **Continue**. Start it on the computer you sit at:
+
+  ```bash
+  mkdir -p ~/.dossier-browser && cd ~/.dossier-browser
+  npm install playwright-core@1.64.1 && npx playwright-core install chromium
+  node /path/to/dossier/scripts/apply-browser.mjs
+  ```
+
+  It prints the address, for example `ws://host.docker.internal:9323/<token>`. Put that in `.env` as `DOSSIER_APPLY_BROWSER` and restart the app. Keep `playwright-core` at the app's version: the protocol changes between versions. The token is the only protection, so don't open the port to the internet.
+
+### Tests
+
+`e2e/fake-ats.mts` serves fake forms in the shape of Greenhouse, Lever, Ashby and Workday (account, three pages, review), plus a form no adapter knows and one with a captcha. They're never a real employer's pages. `e2e/fake-jobs.mts` serves them under `/ats/`, and the fake AI answers `form_answers`. `e2e/auto-apply.spec.ts` covers filling, review, answers typed on the review screen, submitting, Submit without review, Workday, the captcha and LinkedIn. `src/lib/apply/attempts.db.test.ts` runs the same flows in headless Chromium against its own server, so the unit-test job installs the headless shell (`.github/workflows/ci.yml`).
+
 ## Usage ping
 
 The usage ping is opt-in. A production server asks once after sign-in (`src/app/(app)/usage-ping-dialog.tsx`, shown by the signed-in layout while nobody has answered and `DOSSIER_TELEMETRY` isn't set) and sends nothing before a yes. After one, on each day someone signed in opens a page, it sends `https://telemetry.dossier.aien.me/ping` the install's random ID and the version, once (`src/lib/usage-ping.ts`, called with `after()` from the signed-in layout). `DOSSIER_TELEMETRY=on` or `off` answers in advance and wins while it's set.

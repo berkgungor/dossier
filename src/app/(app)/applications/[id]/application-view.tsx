@@ -10,7 +10,7 @@ import { DocumentPreview } from "@/components/documents/document-preview";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { TailoredLetter, TailoredResume } from "@/components/documents/tailored-documents";
 import { toast, toastResult } from "@/components/toast";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DocumentKind,
@@ -701,6 +701,11 @@ export function ApplicationView({
               >
                 Download PDF
               </DownloadPdfButton>
+            )}
+            {resume && !application.awaitingReview && (
+              <Link href={`/applications/${application.id}/apply`} className={buttonClassName("secondary")}>
+                Auto-apply
+              </Link>
             )}
             <ApplicationMenu id={application.id} archived={application.archived} />
           </>
