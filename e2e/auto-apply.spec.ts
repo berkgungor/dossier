@@ -106,7 +106,8 @@ test("submits a Lever form without review when every answer came from the profil
 test("makes a Workday account and goes through its pages", async ({ page }) => {
   await fillIn(page, "/workday/acme/job/404");
   await expect(page.getByRole("heading", { name: "Workday form · best effort" })).toBeVisible({ timeout: 45_000 });
-  await expect(row(page, "Postal Code (required)").getByRole("textbox")).toHaveValue("10001");
+  // An earlier page: shown, no longer editable.
+  await expect(row(page, "Postal Code (required)")).toContainText("10001");
   await expect(row(page, "How did you hear about us? (required)")).toContainText("Filled in");
   await page.getByRole("button", { name: "Submit application" }).click();
   await expect(page.getByRole("heading", { name: "Submitted" })).toBeVisible({ timeout: 45_000 });
